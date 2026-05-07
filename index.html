@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Tariff Simulator</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>☀️ Solar Tariff Simulator</h1>
+            <p>Simulate your solar & battery setup against energy tariffs</p>
+        </header>
+        
+        <!-- Main Content -->
+        <main>
+            <!-- Left Column: Input Form -->
+            <section id="inputSection">
+                <h2>⚙️ Simulation Settings</h2>
+                
+                <form id="simulationForm">
+                    <!-- Date Selection -->
+                    <div class="form-group">
+                        <label for="date">Simulation Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    
+                    <!-- Solar System -->
+                    <fieldset style="border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <legend style="padding: 0 10px; color: var(--primary); font-weight: 600;">Solar System</legend>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="panels">Number of Panels (350W each)</label>
+                                <input type="number" id="panels" name="panels" min="1" max="100" value="10" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="inverterSize">Inverter Size (kW)</label>
+                                <input type="number" id="inverterSize" name="inverterSize" min="1" max="50" step="0.1" value="3" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="batterySize">Battery Size (kWh) - 0 for none</label>
+                            <input type="number" id="batterySize" name="batterySize" min="0" max="50" step="0.1" value="10" required>
+                        </div>
+                    </fieldset>
+                    
+                    <!-- Load Profile -->
+                    <fieldset style="border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <legend style="padding: 0 10px; color: var(--primary); font-weight: 600;">Load Profile</legend>
+                        
+                        <div class="form-group">
+                            <label for="baseLoad">Base Load (kW) - 24/7</label>
+                            <input type="number" id="baseLoad" name="baseLoad" min="0" max="10" step="0.1" value="0.5" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="peakLoad">Peak Load (kW) - 07:00 to 22:00</label>
+                            <input type="number" id="peakLoad" name="peakLoad" min="0" max="20" step="0.1" value="2" required>
+                        </div>
+                    </fieldset>
+                    
+                    <!-- Tariffs -->
+                    <fieldset style="border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <legend style="padding: 0 10px; color: var(--primary); font-weight: 600;">Tariff Rates</legend>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="importRate">Import Rate (£/kWh)</label>
+                                <input type="number" id="importRate" name="importRate" min="0" max="1" step="0.01" value="0.25" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="exportRate">Export Rate (£/kWh)</label>
+                                <input type="number" id="exportRate" name="exportRate" min="0" max="0.5" step="0.01" value="0.05" required>
+                            </div>
+                        </div>
+                    </fieldset>
+                    
+                    <!-- Submit Button -->
+                    <button type="submit">▶ Run Simulation</button>
+                    
+                    <!-- Status Message -->
+                    <div id="formStatus"></div>
+                </form>
+                
+                <!-- Session Management -->
+                <section id="sessionSection" style="margin-top: 30px; border-left-color: var(--info);">
+                    <h2 style="font-size: 1.2em; margin-bottom: 15px;">📁 Session Management</h2>
+                    
+                    <div class="button-group">
+                        <button id="saveSession" title="Save current simulation">💾 Save</button>
+                        <button id="loadSession" title="Load a saved simulation">📂 Load</button>
+                        <button id="clearSessions" title="Delete all saved sessions">🗑️ Clear All</button>
+                    </div>
+                    
+                    <div id="storageInfo">
+                        <p><strong>Sessions Saved:</strong> <span id="sessionCount">0</span></p>
+                        <p><strong>Storage Used:</strong> <span id="storageUsed">0</span> KB / 5000 KB</p>
+                        <div id="sessionList">No sessions saved yet</div>
+                    </div>
+                </section>
+            </section>
+            
+            <!-- Results Section (displayed after simulation) -->
+            <section id="resultsSection" style="display: none; border-left-color: var(--success); grid-column: 1 / -1;">
+                <h2>📊 Simulation Results</h2>
+                
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card">
+                        <h3>Total Solar Production</h3>
+                        <div class="value"><span id="totalProduction">0</span> kWh</div>
+                    </div>
+                    <div class="card">
+                        <h3>Total Consumption</h3>
+                        <div class="value"><span id="totalConsumption">0</span> kWh</div>
+                    </div>
+                    <div class="card success">
+                        <h3>Self-Consumption Rate</h3>
+                        <div class="value"><span id="selfConsumption">0</span>%</div>
+                    </div>
+                    <div class="card danger">
+                        <h3>Grid Import</h3>
+                        <div class="value"><span id="gridImport">0</span> kWh</div>
+                    </div>
+                    <div class="card success">
+                        <h3>Grid Export</h3>
+                        <div class="value"><span id="gridExport">0</span> kWh</div>
+                    </div>
+                    <div class="card info">
+                        <h3>Total Cost</h3>
+                        <div class="value">£<span id="totalCost">0</span></div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="charts">
+                    <div class="chart-container">
+                        <h3>Energy Flow Profile</h3>
+                        <canvas id="energyChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Battery Charge Level</h3>
+                        <canvas id="batteryChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Detailed Data Table -->
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+                    <h3 style="margin-bottom: 15px; color: var(--primary);">Detailed Hourly Breakdown</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Solar (kWh)</th>
+                                    <th>Load (kWh)</th>
+                                    <th>Battery (kWh)</th>
+                                    <th>Import (kWh)</th>
+                                    <th>Export (kWh)</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailTable">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="solar-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
